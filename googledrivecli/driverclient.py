@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 from sys import exit, version_info, argv
+import os
 
 class color:
    PURPLE = '\033[95m'
@@ -14,24 +15,31 @@ class color:
    END = '\033[0m'
    ITALIC = '\033[3m'
 
-# Checking version
+# Checking version is 3
 if not version_info.major == 3:
     print("{}Script needs python 3{}".format(color.RED, color.END))
     exit(1)
 
-# importing required params
+# credentials file path
+filepath = '/home/'+os.environ.get("USER")+'/.googledriver-api/'
+
+# Check credentials path exists
+if not os.path.exists(filepath):
+    os.makedirs(filepath)
+
+# Set secret file and credentials file name
+secretfilename = filepath + 'client_secret.json'
+credentialsfilename = filepath + 'credentials.json'
+scriptname = 'drivecli'
+
+# importing required packages
 from apiclient.discovery import MediaFileUpload
 from googleapiclient.http import MediaIoBaseDownload
 import io
-import os
 from prettytable import PrettyTable
 from optparse import OptionParser
 
-from google_oauth import GetAPIResourceObj
-
-secretfilename = 'client_secret.json'
-credentialsfilename = 'credentials.json'
-scriptname = argv[0]
+from googledrivecli.googleoauth import GetAPIResourceObj
 
 # Create credentials file
 def generateCredentials():
@@ -46,7 +54,7 @@ def generateCredentials():
                 print("""{}\n'client_secret.json' file not found !
 Follow the steps in 'Step 1: Turn on the Drive API' : https://developers.google.com/drive/api/v3/quickstart/python{}
         """.format(color.BOLD, color.END))
-                input("Click 'ENTER' once you download 'credentials.json' and save into current working directory\n")
+                input("Click 'ENTER' once you download 'credentials.json' and save into '{}' directory\n".format(filepath))
                 first_time = False
             else:
                 input("'client_secret.json' file not found!, click enter once downloaded")
@@ -60,7 +68,7 @@ Follow the steps in 'Step 1: Turn on the Drive API' : https://developers.google.
     GetAPIResourceObj()
     exit(0)
 
-# Call the Drive v3 API
+# List File from drive
 def listFile(**keyargs):
     page_token = None
     table = PrettyTable(["modifiedTime", "size", "name", "mimeType"])
@@ -90,6 +98,7 @@ def listFile(**keyargs):
             break
         input("Press ENTER to load next 500 files")
 
+# Upload File to drive
 def uploadFile(filepath, filetype):
     if filetype == 'csv':
         filetype = 'text/csv'
@@ -115,7 +124,7 @@ def uploadFile(filepath, filetype):
     if file_response:
         print("Upload Complete!")
 
-
+# Download File from drive
 def downFile(**keyargs):
     #file_id = input("Enter file ID: ").strip()
     if keyargs.get('exactfilename'):
@@ -139,9 +148,9 @@ def downFile(**keyargs):
             fw.write(fh.read())
         fh.close()
 
-#listFile()
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def main():
 
     usage = "%prog (To generate credentials file, which allows to connect to google drive)\n \
  or : %prog search-file --searchfile=filename | --all-images |  --all  (To Search file(s) in drive)\n \
@@ -160,8 +169,8 @@ if __name__ == "__main__":
     parser.add_option("--filetype", dest="filetype", help="valid file types are csv, image, pdf, plain, compressed, iso")
     (options, args) = parser.parse_args()
     #print(options)
-    #print(len(args))
-    # exit(1)
+
+
     if len(args) == 0:
         generateCredentials()
         exit(0)
@@ -176,7 +185,7 @@ if __name__ == "__main__":
         print("Run '{}' to generate ".format(scriptname))
         exit(1)
 
-    # Convert as dictionary
+    # Search-file checks
     if  args[0] == 'search-file':
         search_options = { 'searchfile':options.searchfile, 'allimages':options.allimages,
                             'all':options.all }
@@ -192,6 +201,7 @@ if __name__ == "__main__":
             print("\n"+parser.get_usage())
             exit(1)
 
+    # Upload-file checks
     elif args[0] == 'upload-file':
         if not options.filepath or  not options.filetype:
             print("{}Required argument is missing!{}".format(color.RED, color.END))
@@ -204,6 +214,7 @@ if __name__ == "__main__":
         upload_option = { 'filepath':options.filepath, 'filetype':options.filetype }
         uploadFile(upload_option['filepath'], upload_option['filetype'])
 
+    # Download file checks
     elif args[0] == 'download-file':
         if options.filenamecontains and options.exactfilename:
             print("Either give '--filenamecontains' or '--exactfilename' ")
@@ -225,7 +236,6 @@ if __name__ == "__main__":
         else:
             print("\n"+parser.get_usage())
             exit(1)
-
 
     else:
         print("\n"+parser.get_usage())
