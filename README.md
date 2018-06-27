@@ -1,4 +1,4 @@
-# edrive-cl, 
+# drive-cli, 
 
 drivecli, a program which makes cli lovers to manage their google drive photos, videos or files in command line.  
 Only one time authentication, no need to login to your account every time like GUI
